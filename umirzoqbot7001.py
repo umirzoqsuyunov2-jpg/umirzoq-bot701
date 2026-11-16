@@ -1,1 +1,2 @@
-umirzoqbot701.py
+pyTelegramBotAPI
+flask
