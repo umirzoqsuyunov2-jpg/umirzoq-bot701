@@ -446,12 +446,3 @@ return
 bot.send_message(message.chat.id, "Iltimos, avval xizmatni tanlang:", reply_markup=main_keyboard())
 print("Bot ishga tushdi...")
 bot.infinity_polling()
-
-### Muhim eslatmalar:
-* **Tokenni qo'yishni unutmang:** Kodning 22-qatoridagi `"YANGI_BOTFATHER_TOKENNI_BU_YERGA_QOYING"` yozuvi o'rniga **@BotFather** dan olgan yangi bot tokeningizni qo'shtirnoq ichiga joylashtiring.
-* **GitHub'da saqlang:** O'zgarishlarni kiritgach, yashil **`Commit changes...`** tugmasini bosing. Render avtomatik ravishda botingizni yangilab, **Live** holatiga o'tkazadi.
-* **UptimeRobot'ga ulang:** Render'da bot **Live** bo'lgach, tepada chiqqan `.onrender.com` havolasini **UptimeRobot.com** saytiga 5 daqiqalik interval bilan ulab qo'ying.
-
-<FollowUp>
-Kodni GitHub'ga saqlaganingizdan so'ng Render'da **`Live`** yozuvi chiqqanini tekshiring va tepada paydo bo'lgan **`.onrender.com` havolasini** yuboring — **UptimeRobot** sozlamasini birga yakunlaymiz.
-</FollowUp>
