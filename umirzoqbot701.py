@@ -19,7 +19,7 @@ def run_web():
 Thread(target=run_web).start()
 # --------------------------------------
 
-BOT_TOKEN = "8875964893:AAHELe7UFQdZON_IT_V57hx5M2pH7gdRCRI"
+BOT_TOKEN = "YANGI_BOTFATHER_TOKENNI_BU_YERGA_QOYING"
 OWNER_CHAT_ID = "7818782335"
 
 if "YANGI_BOTFATHER" in BOT_TOKEN or ":" not in BOT_TOKEN:
@@ -80,7 +80,6 @@ SUBSERVICES = {
     ],
 }
 
-# Ma'lumotlar bot ishlayotgan vaqt davomida xotirada turadi.
 user_orders = {}
 submitted_orders = {}
 
@@ -217,7 +216,6 @@ def submit_order(message):
     for file_id, file_name in order["files"]:
         bot.send_document(OWNER_CHAT_ID, file_id, caption=file_name or "Mijoz yuborgan fayl")
 
-    # Admin chatida pastki menyuni chiqarish.
     bot.send_message(
         OWNER_CHAT_ID,
         "Admin menyusi: yuqoridagi tugmalar orqali buyurtma holatini belgilang.",
@@ -277,10 +275,10 @@ def admin_order_action(call):
         bot.send_message(
             OWNER_CHAT_ID,
             f"✅ Buyurtmangiz #{order_id} tayyor bo'ldi! Mijozga ham xabar yuborildi.",
+            reply_markup=main_keyboard(),
+        )
+        bot.answer_callback_query(call.id, "Mijozga buyurtma tayyorligi yuborildi.")
 Koddan ehtiyotkorlik bilan foydalaning.
-reply_markup=main_keyboard(),
-)
-bot.answer_callback_query(call.id, "Mijozga buyurtma tayyorligi yuborildi.")
 bot.edit_message_reply_markup(
 call.message.chat.id,
 call.message.message_id,
