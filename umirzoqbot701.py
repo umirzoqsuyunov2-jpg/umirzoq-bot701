@@ -1,28 +1,11 @@
-import os
 import uuid
-from threading import Thread
-from flask import Flask
 import telebot
 from telebot import types
-
-# --- RENDER UCHUN VEB-PORT SOZLAMASI ---
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "Umirzoq Kompyuter Xizmatlari boti 24/7 ishlayapti!"
-
-def run_web():
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
-
-Thread(target=run_web).start()
-# --------------------------------------
 
 BOT_TOKEN = "8875964893:AAHELe7UFQdZON_IT_V57hx5M2pH7gdRCRI"
 OWNER_CHAT_ID = "7818782335"
 
-if "YANGI_BOTFATHER" in BOT_TOKEN or ":" not in BOT_TOKEN:
+if "SHU_YERGA" in BOT_TOKEN or ":" not in BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN qatoriga BotFather bergan haqiqiy tokenni kiriting.")
 if not OWNER_CHAT_ID.isdigit():
     raise RuntimeError("OWNER_CHAT_ID qatoriga raqamli chat ID ni kiriting.")
@@ -80,6 +63,7 @@ SUBSERVICES = {
     ],
 }
 
+# Ma'lumotlar bot ishlayotgan vaqt davomida xotirada turadi.
 user_orders = {}
 submitted_orders = {}
 
@@ -117,7 +101,6 @@ def media_keyboard():
 
 def phone_keyboard():
     return make_keyboard([[SKIP_BUTTON]])
-
 
 def confirm_keyboard():
     return make_keyboard([[SEND_BUTTON], [ADD_MEDIA_BUTTON, ADD_NOTE_BUTTON], [PHONE_BUTTON]])
@@ -216,6 +199,7 @@ def submit_order(message):
     for file_id, file_name in order["files"]:
         bot.send_document(OWNER_CHAT_ID, file_id, caption=file_name or "Mijoz yuborgan fayl")
 
+    # Admin chatida pastki menyuni chiqarish.
     bot.send_message(
         OWNER_CHAT_ID,
         "Admin menyusi: yuqoridagi tugmalar orqali buyurtma holatini belgilang.",
@@ -253,12 +237,14 @@ def admin_order_action(call):
     if call.from_user.id != OWNER_CHAT_ID:
         bot.answer_callback_query(call.id, "Bu tugma faqat xizmat egasi uchun.", show_alert=True)
         return
+
     try:
         _, order_id, action = call.data.split("|")
         order = submitted_orders[order_id]
     except (ValueError, KeyError):
         bot.answer_callback_query(call.id, "Buyurtma topilmadi.", show_alert=True)
         return
+
     customer_id = order["user_id"]
     if action == "eta2":
         bot.send_message(customer_id, f"⏳ Buyurtmangiz #{order_id} taxminan 2-3 soatda tayyor bo'ladi.")
@@ -278,169 +264,176 @@ def admin_order_action(call):
             reply_markup=main_keyboard(),
         )
         bot.answer_callback_query(call.id, "Mijozga buyurtma tayyorligi yuborildi.")
-Koddan ehtiyotkorlik bilan foydalaning.
-bot.edit_message_reply_markup(
-call.message.chat.id,
-call.message.message_id,
-reply_markup=None,
-)
+        bot.edit_message_reply_markup(
+            call.message.chat.id,
+            call.message.message_id,
+            reply_markup=None,
+        )
+
+
 @bot.message_handler(content_types=["text", "photo", "document"])
 def handle_message(message):
-text = (message.text or "").strip() if message.content_type == "text" else ""
-user_id = message.from_user.id
-if text == BACK_BUTTON:
-user_orders.pop(user_id, None)
-bot.send_message(message.chat.id, "Bosh menyu:", reply_markup=main_keyboard())
-return
-if text in ("💰 Narxlar", "💵 Narxlar"):
-user_orders.pop(user_id, None)
-bot.send_message(
-message.chat.id,
-"💰 Narxlar xizmat turiga qarab belgilanadi. Aniq narx uchun buyurtma yuboring yoki bog'laning: +998 88 311 27 01",
-reply_markup=main_keyboard(),
-)
-return
-if text in ("📞 Bog'lanish", "☎️ Bog'lanish"):
-user_orders.pop(user_id, None)
-bot.send_message(
-message.chat.id,
-"📞 +998 88 311 27 01\nTelegram: @UMIRZOQ_701\n🕘 Ish vaqti: 24/7 | Instagram: instagram.com",
-reply_markup=main_keyboard(),
-)
-return
-if text in MAIN_MENU:
-options = SUBSERVICES.get(text)
-if options:
-user_orders[user_id] = {"main_button": text, "step": "subservice"}
-bot.send_message(
-message.chat.id,
-f"{MAIN_MENU[text]} bo'limidan keraklisini tanlang:",
-reply_markup=submenu_keyboard(options),
-)
-else:
-begin_order(message, text)
-return
-order = user_orders.get(user_id)
-if order and order.get("step") == "subservice":
-main_button = order["main_button"]
-if text in SUBSERVICES.get(main_button, []):
-order["service"] = MAIN_MENU[main_button]
-order["detail"] = text
-order["photos"] = []
-order["files"] = []
-order["note"] = ""
-order["phone"] = ""
-order["step"] = "media"
-bot.send_message(
-message.chat.id,
-f"Tanlandi: {text}\n\n"
-"Buyurtma namunasi yoki kerakli materialning rasmini/faylini yuboring. "
-"Keyin izoh yozishingiz mumkin. Rasm bo'lmasa, “Davom etish”ni bosing.",
-reply_markup=media_keyboard(),
-)
-else:
-bot.send_message(message.chat.id, "Iltimos, ro'yxatdagi xizmat turini tanlang.")
-return
-if order and order.get("step") == "media":
-if message.content_type == "photo":
-order["photos"].append(message.photo[-1].file_id)
-if message.caption:
-order["note"] = (order["note"] + "\n" + message.caption).strip()
-bot.send_message(
-message.chat.id,
-"Rasm qo'shildi. Yana rasm/fayl yuboring yoki izoh yozing.",
-reply_markup=media_keyboard(),
-)
-return
-if message.content_type == "document":
-order["files"].append((message.document.file_id, message.document.file_name or ""))
-if message.caption:
-order["note"] = (order["note"] + "\n" + message.caption).strip()
-bot.send_message(
-message.chat.id,
-"Fayl qo'shildi. Yana rasm/fayl yuboring yoki izoh yozing.",
-reply_markup=media_keyboard(),
-)
-return
-if text == PHONE_BUTTON:
-order["step"] = "phone"
-bot.send_message(
-message.chat.id,
-"Telefon raqamingizni yozing (masalan, +998901234567). Raqam qoldirish ixtiyoriy; istamasangiz “Davom etish”ni bosing.",
-reply_markup=phone_keyboard(),
-)
-return
-if text == ADD_NOTE_BUTTON:
-order["step"] = "note"
-bot.send_message(message.chat.id, "Buyurtmangiz haqida izohni yozib yuboring:", reply_markup=make_keyboard([]))
-return
-if text == SKIP_BUTTON:
-show_confirmation(message.chat.id, user_id)
-return
-if text:
-order["note"] = text
-show_confirmation(message.chat.id, user_id)
-return
-if order and order.get("step") == "phone":
-if text == SKIP_BUTTON:
-order["phone"] = ""
-show_confirmation(message.chat.id, user_id)
-return
-if text:
-order["phone"] = text
-show_confirmation(message.chat.id, user_id)
-return
-bot.send_message(
-message.chat.id,
-"Telefon raqamingizni matn qilib yozing yoki raqamsiz davom eting.",
-reply_markup=phone_keyboard(),
-)
-return
-if order and order.get("step") == "note":
-if message.content_type in ("photo", "document"):
-if message.content_type == "photo":
-order["photos"].append(message.photo[-1].file_id)
-else:
-order["files"].append((message.document.file_id, message.document.file_name or ""))
-bot.send_message(message.chat.id, "Rasm/fayl qo'shildi. Izohni matn qilib yuboring yoki /cancel bosing.")
-return
-if text == SKIP_BUTTON:
-show_confirmation(message.chat.id, user_id)
-return
-if text:
-order["note"] = text
-show_confirmation(message.chat.id, user_id)
-return
-if order and order.get("step") == "confirm":
-if text == SEND_BUTTON:
-submit_order(message)
-return
-if text == ADD_MEDIA_BUTTON:
-order["step"] = "media"
-bot.send_message(message.chat.id, "Yana rasm yoki fayl yuboring. Tugagach “Davom etish”ni bosing.", reply_markup=media_keyboard())
-return
-if text == ADD_NOTE_BUTTON:
-order["step"] = "note"
-bot.send_message(message.chat.id, "Izohingizni yozing:", reply_markup=make_keyboard([]))
-return
-if text == PHONE_BUTTON:
-order["step"] = "phone"
-bot.send_message(
-message.chat.id,
-"Telefon raqamingizni yozing (masalan, +998901234567). Raqam qoldirish ixtiyoriy; istamasangiz “Davom etish”ni bosing.",
-reply_markup=phone_keyboard(),
-)
-return
-if message.content_type == "photo":
-order["photos"].append(message.photo[-1].file_id)
-show_confirmation(message.chat.id, user_id)
-return
-if message.content_type == "document":
-order["files"].append((message.document.file_id, message.document.file_name or ""))
-show_confirmation(message.chat.id, user_id)
-return
-bot.send_message(message.chat.id, "Buyurtmani yuborish yoki ma'lumotni o'zgartirish uchun tugmalardan foydalaning.", reply_markup=confirm_keyboard())
-return
-bot.send_message(message.chat.id, "Iltimos, avval xizmatni tanlang:", reply_markup=main_keyboard())
+    text = (message.text or "").strip() if message.content_type == "text" else ""
+    user_id = message.from_user.id
+
+    if text == BACK_BUTTON:
+        user_orders.pop(user_id, None)
+        bot.send_message(message.chat.id, "Bosh menyu:", reply_markup=main_keyboard())
+        return
+
+    if text in ("💰 Narxlar", "💵 Narxlar"):
+        user_orders.pop(user_id, None)
+        bot.send_message(
+            message.chat.id,
+            "💰 Narxlar xizmat turiga qarab belgilanadi. Aniq narx uchun buyurtma yuboring yoki bog'laning: +998 88 311 27 01",
+            reply_markup=main_keyboard(),
+        )
+        return
+    if text in ("📞 Bog'lanish", "☎️ Bog'lanish"):
+        user_orders.pop(user_id, None)
+        bot.send_message(
+            message.chat.id,
+            "📞 +998 88 311 27 01\nTelegram: @UMIRZOQ_701\n🕘 Ish vaqti: 24/7 | Instagram: https://www.instagram.com/umirzoq_701/",
+            reply_markup=main_keyboard(),
+        )
+        return
+
+    if text in MAIN_MENU:
+        options = SUBSERVICES.get(text)
+        if options:
+            user_orders[user_id] = {"main_button": text, "step": "subservice"}
+            bot.send_message(
+                message.chat.id,
+                f"{MAIN_MENU[text]} bo'limidan keraklisini tanlang:",
+                reply_markup=submenu_keyboard(options),
+            )
+        else:
+            begin_order(message, text)
+        return
+
+    order = user_orders.get(user_id)
+    if order and order.get("step") == "subservice":
+        main_button = order["main_button"]
+        if text in SUBSERVICES.get(main_button, []):
+            order["service"] = MAIN_MENU[main_button]
+            order["detail"] = text
+            order["photos"] = []
+            order["files"] = []
+            order["note"] = ""
+            order["phone"] = ""
+            order["step"] = "media"
+            bot.send_message(
+                message.chat.id,
+                f"Tanlandi: {text}\n\n"
+                "Buyurtma namunasi yoki kerakli materialning rasmini/faylini yuboring. "
+                "Keyin izoh yozishingiz mumkin. Rasm bo'lmasa, “Davom etish”ni bosing.",
+                reply_markup=media_keyboard(),
+            )
+        else:
+            bot.send_message(message.chat.id, "Iltimos, ro'yxatdagi xizmat turini tanlang.")
+        return
+
+    if order and order.get("step") == "media":
+        if message.content_type == "photo":
+            order["photos"].append(message.photo[-1].file_id)
+            if message.caption:
+                order["note"] = (order["note"] + "\n" + message.caption).strip()
+            bot.send_message(
+                message.chat.id,
+                "Rasm qo'shildi. Yana rasm/fayl yuboring yoki izoh yozing.",
+                reply_markup=media_keyboard(),
+            )
+            return
+        if message.content_type == "document":
+            order["files"].append((message.document.file_id, message.document.file_name or ""))
+            if message.caption:
+                order["note"] = (order["note"] + "\n" + message.caption).strip()
+            bot.send_message(
+                message.chat.id,
+                "Fayl qo'shildi. Yana rasm/fayl yuboring yoki izoh yozing.",
+                reply_markup=media_keyboard(),
+            )
+            return
+        if text == PHONE_BUTTON:
+            order["step"] = "phone"
+            bot.send_message(
+                message.chat.id,
+                "Telefon raqamingizni yozing (masalan, +998901234567). Raqam qoldirish ixtiyoriy; istamasangiz “Davom etish”ni bosing.",
+                reply_markup=phone_keyboard(),
+            )
+            return
+        if text == ADD_NOTE_BUTTON:
+            order["step"] = "note"
+            bot.send_message(message.chat.id, "Buyurtmangiz haqida izohni yozib yuboring:", reply_markup=make_keyboard([]))
+            return
+        if text == SKIP_BUTTON:
+            show_confirmation(message.chat.id, user_id)
+            return
+        if text:
+            order["note"] = text
+            show_confirmation(message.chat.id, user_id)
+            return
+
+    if order and order.get("step") == "phone":
+        if text == SKIP_BUTTON:
+            order["phone"] = ""
+            show_confirmation(message.chat.id, user_id)
+            return
+        if text:
+            order["phone"] = text
+            show_confirmation(message.chat.id, user_id)
+            return
+        bot.send_message(
+            message.chat.id,
+            "Telefon raqamingizni matn qilib yozing yoki raqamsiz davom eting.",
+            reply_markup=phone_keyboard(),
+        )
+        return
+    if order and order.get("step") == "note":
+        if message.content_type in ("photo", "document"):
+            if message.content_type == "photo":
+                order["photos"].append(message.photo[-1].file_id)
+            else:
+                order["files"].append((message.document.file_id, message.document.file_name or ""))
+            bot.send_message(message.chat.id, "Rasm/fayl qo'shildi. Izohni matn qilib yuboring yoki /cancel bosing.")
+            return
+        if text == SKIP_BUTTON:
+            show_confirmation(message.chat.id, user_id)
+            return
+        if text:
+            order["note"] = text
+            show_confirmation(message.chat.id, user_id)
+            return
+    if order and order.get("step") == "confirm":
+        if text == SEND_BUTTON:
+            submit_order(message)
+            return
+        if text == ADD_MEDIA_BUTTON:
+            order["step"] = "media"
+            bot.send_message(message.chat.id, "Yana rasm yoki fayl yuboring. Tugagach “Davom etish”ni bosing.", reply_markup=media_keyboard())
+            return
+        if text == ADD_NOTE_BUTTON:
+            order["step"] = "note"
+            bot.send_message(message.chat.id, "Izohingizni yozing:", reply_markup=make_keyboard([]))
+            return
+        if text == PHONE_BUTTON:
+            order["step"] = "phone"
+            bot.send_message(
+                message.chat.id,
+                "Telefon raqamingizni yozing (masalan, +998901234567). Raqam qoldirish ixtiyoriy; istamasangiz “Davom etish”ni bosing.",
+                reply_markup=phone_keyboard(),
+            )
+            return
+        if message.content_type == "photo":
+            order["photos"].append(message.photo[-1].file_id)
+            show_confirmation(message.chat.id, user_id)
+            return
+        if message.content_type == "document":
+            order["files"].append((message.document.file_id, message.document.file_name or ""))
+            show_confirmation(message.chat.id, user_id)
+            return
+        bot.send_message(message.chat.id, "Buyurtmani yuborish yoki ma'lumotni o'zgartirish uchun tugmalardan foydalaning.", reply_markup=confirm_keyboard())
+        return
+    bot.send_message(message.chat.id, "Iltimos, avval xizmatni tanlang:", reply_markup=main_keyboard())
 print("Bot ishga tushdi...")
 bot.infinity_polling()
