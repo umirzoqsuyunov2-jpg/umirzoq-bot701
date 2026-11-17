@@ -19,7 +19,7 @@ def run_web():
 Thread(target=run_web).start()
 # --------------------------------------
 
-BOT_TOKEN = "YANGI_BOTFATHER_TOKENNI_BU_YERGA_QOYING"
+BOT_TOKEN = "8875964893:AAHELe7UFQdZON_IT_V57hx5M2pH7gdRCRI"
 OWNER_CHAT_ID = "7818782335"
 
 if "YANGI_BOTFATHER" in BOT_TOKEN or ":" not in BOT_TOKEN:
